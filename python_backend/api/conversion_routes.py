@@ -9,10 +9,24 @@
 
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
-from typing import Dict, List, Any, Optional
-from ..services.conversion_service import ConversionService
+from typing import Dict,  Any, Optional
+from services.conversion_service import ConversionService
 
 router = APIRouter(prefix="/api/conversion", tags=["conversion"])
+
+class ChatRequest(BaseModel):
+    message: str
+    conversation_id: Optional[str] = None
+    user_preferences: Optional[Dict[str, Any]] = None
+    
+    class Config:
+        schema_extra = {
+            "example": {
+                "message": "안녕하세요! 비즈니스 이메일 작성을 도와주세요.",
+                "conversation_id": "conv_123", 
+                "user_preferences": {"tone": "formal"}
+            }
+        }
 
 class ConversionRequest(BaseModel):
     text: str
@@ -26,6 +40,29 @@ class FeedbackRequest(BaseModel):
 
 # 서비스 인스턴스
 conversion_service = ConversionService()
+
+@router.post("/chat")
+async def chat(request: ChatRequest):
+    """채팅 메시지 처리"""
+    try:
+        if not request.message.strip():
+            raise HTTPException(status_code=400, detail="메시지를 입력해주세요.")
+        
+        result = await conversion_service.handle_chat_message(
+            message=request.message,
+            conversation_id=request.conversation_id,
+            user_preferences=request.user_preferences
+        )
+        
+        if not result.get("success"):
+            raise HTTPException(status_code=500, detail=result.get("error", "채팅 처리 중 오류가 발생했습니다."))
+        
+        return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"서버 오류: {str(e)}") from e
 
 @router.post("/convert")
 async def convert_text(request: ConversionRequest):
@@ -77,10 +114,27 @@ async def process_feedback(request: FeedbackRequest):
         raise HTTPException(status_code=500, detail=f"서버 오류: {str(e)}")
 
 @router.get("/health")
+@app.get("/health", tags=["Health Check"], summary="서버 상태 확인")
 async def health_check():
-    """서비스 상태 확인"""
+    """
+    시스템 전체 상태 및 외부 서비스 연결 확인
+    
+    - **OpenAI 연결 상태**
+    - **프롬프트 엔지니어링 서비스 상태**
+    - **사용 가능한 기능 목록**
+    """
     return {
-        "status": "healthy",
-        "service": "conversion_service",
-        "timestamp": conversion_service._get_timestamp()
+        "status": "ok",
+        "service": "chat-toner-fastapi",
+        "openai_available": openai_client is not None,
+        "openai_key_exists": bool(os.getenv("OPENAI_API_KEY")),
+        "prompt_engineering_available": PROMPT_ENGINEERING_AVAILABLE,
+        "python_version": sys.version,
+        "features": {
+            "basic_conversion": True,
+            "advanced_prompts": PROMPT_ENGINEERING_AVAILABLE,
+            "openai_integration": openai_client is not None,
+            "rag_chains": PROMPT_ENGINEERING_AVAILABLE,
+            "finetune_service": finetune_service is not None
+        }
     }

@@ -11,7 +11,7 @@
 
 from typing import Dict, List, Any, Optional
 from .prompt_engineering import PromptEngineer
-from .openai_service import OpenAIService
+from .openai_services import OpenAIService
 
 class ConversionService:
     """텍스트 변환 메인 서비스 클래스"""

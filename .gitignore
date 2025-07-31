@@ -1,6 +1,7 @@
-
 node_modules
-
+python_backend/jiwon 
+.venv
+python_backend/.env
 .env
 
-.env
+python_backend/core/config.py
