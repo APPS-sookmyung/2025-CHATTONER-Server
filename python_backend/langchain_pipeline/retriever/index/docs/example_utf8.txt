@@ -1,0 +1,3 @@
+﻿LangChain is a framework that combines LLMs with documents to build various applications such as question answering, summarization, and chatbots.
+FAISS is a fast library for vector similarity search.
+Prompt engineering is a key technique that determines the quality of a model?
