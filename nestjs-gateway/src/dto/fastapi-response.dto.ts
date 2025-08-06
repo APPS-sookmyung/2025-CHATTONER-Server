@@ -1,4 +1,4 @@
-// src/users/dto/fastapi-response.dto.ts
+// nestjs-gateway/src/dto/fastapi-response.dto.ts
 import { IsString, IsNumber, IsArray } from 'class-validator';
 
 export class FastApiResponseDto {
