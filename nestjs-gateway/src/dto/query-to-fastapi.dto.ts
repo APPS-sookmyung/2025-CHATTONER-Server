@@ -1,4 +1,4 @@
-// src/users/dto/query-to-fastapi.dto.ts
+// nestjs-gateway/src/dto/query-to-fastapi.dto.ts
 import { IsString, IsOptional, IsNumber } from 'class-validator';
 
 export class QueryToFastApiDto {

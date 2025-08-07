@@ -1,0 +1,30 @@
+version: "3.9"
+
+services:
+  backend:
+    build: ./python_backend
+    ports:
+      - "8000:8000"
+    command: ["uvicorn", "run_fastapi:app", "--host", "0.0.0.0", "--port", "8000"]
+    depends_on:
+      - db
+
+  gateway:
+    build: ./nestjs-gateway
+    ports:
+      - "3000:3000"
+
+  db:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_DB: mydb # 생성할 기본 db
+      POSTGRES_USER: user # db 접속용 사용자
+      POSTGRES_PASSWORD: password # db 접속용 비밀번호
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
