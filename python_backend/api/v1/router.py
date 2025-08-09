@@ -14,6 +14,8 @@ from fastapi import APIRouter
 from api.v1.endpoints.health import router as health_router
 from api.v1.endpoints.conversion import router as conversion_router
 from api.v1.endpoints.user import router as user_router
+from api.v1.endpoints.finetune import router as finetune_router
+
 
 api_router=APIRouter()
 # v1전체의 라우팅 집합 
@@ -38,4 +40,10 @@ api_router.include_router(
     user_router,
     prefix="/user",
     tags=["User Management"]
+)
+
+api_router.include_router(
+    finetune_router,
+    prefix="/finetune",
+    tags=["Fine-tuning"],
 )
