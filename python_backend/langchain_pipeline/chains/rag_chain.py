@@ -14,7 +14,7 @@ import sys
 import logging
 from pathlib import Path
 import os
-from typing import Dict, Optional
+from typing import Dict, Optional, Any
 from datetime import datetime
 
 # 프로젝트 경로 설정
@@ -45,10 +45,12 @@ class RAGChain:
             from services.prompt_engineering import PromptEngineer
             from services.openai_services import OpenAIService
             from services.conversion_service import ConversionService
-            
+            from services.user_preferences import UserPreferencesService
+
             self.prompt_engineer = PromptEngineer()
             self.openai_service = OpenAIService()
             self.conversion_service = ConversionService()
+            self.user_preferences_service = UserPreferencesService()
             self.services_available = True
             logger.info("Services 초기화 완료")
         except ImportError as e:
@@ -57,7 +59,7 @@ class RAGChain:
         except Exception as e:
             self.services_available = False
             logger.error(f"Services 인스턴스 생성 실패: {e}")
-        
+
         api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
             raise ValueError("OPENAI_API_KEY environment variable is required")
@@ -224,7 +226,58 @@ class RAGChain:
                 "error": f"스타일 변환 중 오류 발생: {str(e)}",
                 "converted_texts": {"direct": "", "gentle": "", "neutral": ""}
             }
-    
+        
+    async def process_user_feedback(self,
+                                   feedback_text: str,
+                                   user_profile: Dict[str, Any],
+                                   rating: Optional[int] = None,
+                                   selected_version: str = "neutral") -> Dict[str, Any]:
+        """사용자 피드백 처리 - 고급/기본 처리 선택"""
+        try:
+            # 고급 처리 (UserPreferencesService 사용)
+            if self.user_preferences_service and rating:
+                user_id = user_profile.get('userId', 'unknown')
+                success = await self.user_preferences_service.adapt_user_style(
+                    user_id=user_id,
+                    feedback_text=feedback_text,
+                    rating=rating,
+                    selected_version=selected_version
+                )
+                
+                if success:
+                    updated_profile = user_profile.copy()
+                    logger.info(f"고급 피드백 처리 완료: user_id={user_id}, rating={rating}")
+                    return {
+                        "success": True,
+                        "updated_profile": updated_profile,
+                        "style_adjustments": {"advanced_learning": True},
+                        "feedback_processed": feedback_text,
+                        "processing_method": "user_preferences_service"
+                    }
+            
+            # 기본 처리 (ConversionService 사용)
+            if not self.services_available or not self.conversion_service:
+                return {
+                    "success": False,
+                    "error": "피드백 처리 서비스가 초기화되지 않았습니다.",
+                    "updated_profile": user_profile
+                }
+            
+            # ConversionService의 기본 피드백 처리 활용
+            return await self.conversion_service.process_user_feedback(
+                feedback_text=feedback_text,
+                user_profile=user_profile
+            )
+            
+        except Exception as e:
+            logger.error(f"피드백 처리 오류: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "updated_profile": user_profile,
+                "processing_method": "error"
+            }
+            
     def get_status(self) -> Dict:
         """상태 정보"""
         return {
