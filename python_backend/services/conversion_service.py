@@ -84,6 +84,7 @@ class ConversionService:
                 }
             }
     
+    #비동기 피드백 처리 함수
     async def process_user_feedback(self, 
                                    feedback_text: str,
                                    user_profile: Dict[str, Any]) -> Dict[str, Any]:
