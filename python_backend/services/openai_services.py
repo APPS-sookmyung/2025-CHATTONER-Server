@@ -145,7 +145,7 @@ class OpenAIService:
             print(f"감정 분석 오류: {e}")
             return {"rating": 3, "confidence": 0.5}
     
-    def analyze_style_feedback(self, feedback_text: str) -> Dict[str, float]:
+    async def analyze_style_feedback(self, feedback_text: str) -> Dict[str, float]:
         """
         사용자 피드백을 분석하여 스타일 조정값 계산
         
