@@ -6,7 +6,8 @@
 - 변환 요청과 피드백 요청을 처리하는 메소드 포함
 
 """
-
+import os
+import sys
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Dict,  Any, Optional
@@ -112,6 +113,10 @@ async def process_feedback(request: FeedbackRequest):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"서버 오류: {str(e)}")
+    
+openai_client = None 
+PROMPT_ENGINEERING_AVAILABLE = False
+finetune_service = None
 
 @router.get("/health")
 @app.get("/health", tags=["Health Check"], summary="서버 상태 확인")
