@@ -1,0 +1,102 @@
+name: Deploy services to ECS
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+env:
+  AWS_REGION: ap-northeast-2
+  ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
+  CLUSTER: chattoner-cluster  
+
+jobs:
+  deploy:
+    concurrency:
+    group: ecs-${{ github.ref }}-${{ matrix.service }}
+    cancel-in-progress: true
+
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    strategy:
+      matrix:
+        include:
+          # ====== 서비스 1: 백엔드(FastAPI 등) ======
+          - service: backend-task-service-fas9ry75  
+            ecr_repo: chattoner-backend   
+            dockerfile: python_backend/Dockerfile   # Dockerfile 경로
+            context: python_backend                 # Build context
+            taskdef: infra/taskdef-backend.json           # 태스크 정의 템플릿
+            container: python-backend            
+
+          # ====== 서비스 2: 프론트(컨테이너로 운영 중) ======
+          - service: front-task-service-ptfznuie
+            ecr_repo: chattoner-frontend
+            dockerfile: client/Dockerfile
+            context: frontend
+            taskdef: infra/taskdef-front.json
+            container: react-front
+
+          # ====== 서비스 3: NestJS 게이트웨이 ======
+          - service: nestjs-task-service-4io3oca0
+            ecr_repo: nestjs-gateway
+            dockerfile: nestjs-gateway/Dockerfile
+            context: nestjs-gateway
+            taskdef: infra/taskdef-nestjs.json
+            container: nestjs-gateway
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Ensure ECR repo exists
+        run: |
+          aws ecr describe-repositories --repository-names "${{ matrix.ecr_repo }}" >/dev/null 2>&1 \
+          || aws ecr create-repository --repository-name "${{ matrix.ecr_repo }}" >/dev/null
+
+      - uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Compute image tag
+        id: meta
+        shell: bash
+        run: |
+          SHORTSHA="$(git rev-parse --short HEAD)"
+          TS="$(date -u +%Y%m%d-%H%M%S)"
+          IMAGE="${{ env.ECR_REGISTRY }}/${{ matrix.ecr_repo }}:${SHORTSHA}-${TS}"
+          echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
+
+      - name: Build image
+        run: |
+          docker build \
+            --label org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }} \
+            --label org.opencontainers.image.revision=${{ github.sha }} \
+            --label org.opencontainers.image.created=$(date -u +%Y-%m-%dT%H:%M:%SZ) \
+            -t "${{ steps.meta.outputs.image }}" \
+            -f "${{ matrix.dockerfile }}" "${{ matrix.context }}"
+
+      - name: Push image
+        run: docker push "${{ steps.meta.outputs.image }}"
+
+      - name: Render task definition
+        id: render
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: ${{ matrix.taskdef }}
+          container-name: ${{ matrix.container }}
+          image: ${{ steps.meta.outputs.image }}
+
+      - name: Deploy to ECS
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.render.outputs.task-definition }}
+          service: ${{ matrix.service }}
+          cluster: ${{ env.CLUSTER }}
+          wait-for-service-stability: true

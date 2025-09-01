@@ -1,0 +1,116 @@
+name: Deploy to ECS (ECR build → ECS update)
+
+on:
+  push:
+    branches: [ "main" ]       # main에 푸시될 때 배포
+  workflow_dispatch:            # 수동 실행도 허용
+
+env:
+  AWS_REGION: ap-northeast-2
+  # ECR
+  ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
+  ECR_REPO: chattoner-nestjs          # ← ECR 리포지토리 이름 (원하는 이름으로)
+  # ECS
+  CLUSTER: chattoner-cluster          # ← ECS 클러스터명
+  SERVICE: nestjs-svc                 # ← ECS 서비스명
+  TASK_FAMILY: chattoner-nestjs       # ← 태스크 패밀리명 (taskdef json의 family와 동일)
+  CONTAINER_NAME: nestjs              # ← taskdef 내 컨테이너 이름 (image 치환 대상)
+
+concurrency:
+  group: ecs-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-push:
+    name: Build & Push to ECR
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write   # OIDC용
+      contents: read
+
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+      image_tag: ${{ steps.meta.outputs.image_tag }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Ensure ECR repo exists
+        run: |
+          aws ecr describe-repositories --repository-names "${{ env.ECR_REPO }}" >/dev/null 2>&1 \
+          || aws ecr create-repository --repository-name "${{ env.ECR_REPO }}" >/dev/null
+
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Compute image tag
+        id: meta
+        shell: bash
+        run: |
+          SHORTSHA="$(git rev-parse --short HEAD)"
+          TS="$(date -u +%Y%m%d-%H%M%S)"
+          IMAGE_TAG="${SHORTSHA}-${TS}"
+          IMAGE_URI="${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${IMAGE_TAG}"
+          echo "image=${IMAGE_URI}" >> "$GITHUB_OUTPUT"
+          echo "image_tag=${IMAGE_TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Build image
+        run: |
+          docker build \
+            --label org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }} \
+            --label org.opencontainers.image.revision=${{ github.sha }} \
+            --label org.opencontainers.image.created=$(date -u +%Y-%m-%dT%H:%M:%SZ) \
+            -t "${{ steps.meta.outputs.image }}" \
+            -f nestjs-gateway/Dockerfile nestjs-gateway
+
+      - name: Push image
+        run: |
+          docker push "${{ steps.meta.outputs.image }}"
+          # (선택) latest 태그도 함께 푸시하고 싶다면 아래 2줄 사용
+          # docker tag "${{ steps.meta.outputs.image }}" "${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:latest"
+          # docker push "${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:latest"
+
+  deploy:
+    name: Update ECS Service
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    environment:
+      name: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # taskdef 템플릿에서 컨테이너 이미지(특정 컨테이너명)에만 새 태그를 주입
+      - name: Render task definition
+        id: render
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: infra/taskdef-app.json
+          container-name: ${{ env.CONTAINER_NAME }}
+          image: ${{ needs.build-and-push.outputs.image }}
+
+      - name: Deploy to ECS
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.render.outputs.task-definition }}
+          service: ${{ env.SERVICE }}
+          cluster: ${{ env.CLUSTER }}
+          wait-for-service-stability: true
+          # force-new-deployment: true   # (필요 시 강제 롤링)

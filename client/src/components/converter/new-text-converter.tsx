@@ -70,7 +70,7 @@ const generateMockConversion = (inputText: string, context: string, userProfile:
   // 실제 텍스트 변환 로직
   const transformText = (text: string, style: 'direct' | 'gentle' | 'neutral') => {
     let transformed = text;
-    
+
     // 직접적 스타일 - 간결하고 명확하게
     if (style === 'direct') {
       transformed = transformed
@@ -85,7 +85,7 @@ const generateMockConversion = (inputText: string, context: string, userProfile:
         .replace(/~일 수도 있습니다/g, '~입니다')
         .replace(/~할 수도 있습니다/g, '~합니다');
     }
-    
+
     // 부드러운 스타일 - 친근하고 공손하게
     else if (style === 'gentle') {
       transformed = transformed
@@ -98,7 +98,7 @@ const generateMockConversion = (inputText: string, context: string, userProfile:
         .replace(/~합니다/g, '~할 것 같습니다')
         .replace(/~해요/g, '~하시는 것 같아요');
     }
-    
+
     // 중립적 스타일 - 균형잡힌 표현
     else if (style === 'neutral') {
       transformed = transformed
@@ -173,7 +173,7 @@ export default function NewTextConverter({
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [negativePreferences, setNegativePreferences] = useState({
     rhetoricLevel: "moderate",
-    repetitionTolerance: "moderate", 
+    repetitionTolerance: "moderate",
     punctuationStyle: "standard",
     contentFocus: "balanced",
     bulletPreference: "minimal",
@@ -217,7 +217,7 @@ export default function NewTextConverter({
       }
 
       const result = await response.json();
-      
+
       let convertedData: ConversionResponse;
 
       if (isFinetune) {
@@ -288,11 +288,11 @@ export default function NewTextConverter({
         userId,
         timestamp: new Date().toISOString()
       };
-      
+
       const existingFeedback = JSON.parse(localStorage.getItem('chatToner_feedback') || '[]');
       existingFeedback.push(feedbackData);
       localStorage.setItem('chatToner_feedback', JSON.stringify(existingFeedback));
-      
+
       return { success: true };
     },
     onSuccess: () => {
@@ -432,7 +432,7 @@ export default function NewTextConverter({
                     <label className="text-sm font-medium mb-2 block">수사법 수준</label>
                     <Select
                       value={negativePreferences.rhetoricLevel}
-                      onValueChange={(value) => setNegativePreferences({...negativePreferences, rhetoricLevel: value})}
+                      onValueChange={(value) => setNegativePreferences({ ...negativePreferences, rhetoricLevel: value })}
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -449,7 +449,7 @@ export default function NewTextConverter({
                     <label className="text-sm font-medium mb-2 block">반복 허용도</label>
                     <Select
                       value={negativePreferences.repetitionTolerance}
-                      onValueChange={(value) => setNegativePreferences({...negativePreferences, repetitionTolerance: value})}
+                      onValueChange={(value) => setNegativePreferences({ ...negativePreferences, repetitionTolerance: value })}
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -466,7 +466,7 @@ export default function NewTextConverter({
                     <label className="text-sm font-medium mb-2 block">문장부호 스타일</label>
                     <Select
                       value={negativePreferences.punctuationStyle}
-                      onValueChange={(value) => setNegativePreferences({...negativePreferences, punctuationStyle: value})}
+                      onValueChange={(value) => setNegativePreferences({ ...negativePreferences, punctuationStyle: value })}
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -483,7 +483,7 @@ export default function NewTextConverter({
                     <label className="text-sm font-medium mb-2 block">내용 초점</label>
                     <Select
                       value={negativePreferences.contentFocus}
-                      onValueChange={(value) => setNegativePreferences({...negativePreferences, contentFocus: value})}
+                      onValueChange={(value) => setNegativePreferences({ ...negativePreferences, contentFocus: value })}
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -500,7 +500,7 @@ export default function NewTextConverter({
                     <label className="text-sm font-medium mb-2 block">불릿 포인트</label>
                     <Select
                       value={negativePreferences.bulletPreference}
-                      onValueChange={(value) => setNegativePreferences({...negativePreferences, bulletPreference: value})}
+                      onValueChange={(value) => setNegativePreferences({ ...negativePreferences, bulletPreference: value })}
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -517,7 +517,7 @@ export default function NewTextConverter({
                     <label className="text-sm font-medium mb-2 block">이모티콘 정책</label>
                     <Select
                       value={negativePreferences.emoticonPolicy}
-                      onValueChange={(value) => setNegativePreferences({...negativePreferences, emoticonPolicy: value})}
+                      onValueChange={(value) => setNegativePreferences({ ...negativePreferences, emoticonPolicy: value })}
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -531,7 +531,7 @@ export default function NewTextConverter({
                     </Select>
                   </div>
                 </div>
-                
+
                 <div className="text-xs text-gray-600">
                   💡 네거티브 프롬프트는 AI가 피해야 할 스타일을 지정하여 더 정확한 변환을 도와줍니다.
                 </div>

@@ -136,7 +136,7 @@ export default function QualityValidator({ onBack }: QualityValidatorProps) {
           if (improvedTextMatch && improvedTextMatch[1].trim()) {
             improved_text = improvedTextMatch[1].trim();
           }
-          
+
           suggestions.push({
             type: "grammar",
             original: "문법 관련",
@@ -155,7 +155,7 @@ export default function QualityValidator({ onBack }: QualityValidatorProps) {
           if (improvedTextMatch && improvedTextMatch[1].trim()) {
             improved_text = improvedTextMatch[1].trim();
           }
-          
+
           suggestions.push({
             type: "expression",
             original: "표현 관련",
