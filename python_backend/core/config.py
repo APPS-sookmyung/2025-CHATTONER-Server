@@ -10,16 +10,16 @@ from pathlib import Path
 class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     PROJECT_NAME: str = "Chat Toner API"
-    DESCRIPTION: str = "AI 기반 한국어 텍스트 스타일 개인화 API"
+    DESCRIPTION: str = "AI-based Korean text style personalization API"
     VERSION: str = "1.0.0"
     DEBUG: bool = True
     
-    # 서버 설정
+    # Server configuration
     #HOST: str = "0.0.0.0"
     HOST: str = "127.0.0.1"
     PORT: int = 5001
     
-    #파인 튜닝 추론 서버 설정
+    # Fine-tuning inference server configuration
     FINETUNE_INFERENCE_HOST: str = Field(default="localhost", validation_alias="RUNPOD_IP")
     FINETUNE_INFERENCE_PORT: int = 8010
     FINETUNE_URL_OVERRIDE: Optional[str] = Field(default=None)
@@ -30,11 +30,11 @@ class Settings(BaseSettings):
             return self.FINETUNE_URL_OVERRIDE
         return f"http://{self.FINETUNE_INFERENCE_HOST}:{self.FINETUNE_INFERENCE_PORT}"
     
-    # OpenAI 설정
+    # OpenAI configuration
     OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
     OPENAI_MODEL: str = "gpt-4o"
     
-    # 데이터베이스 설정
+    # Database configuration
     DATABASE_URL: str = "sqlite:///./chat_toner.db"
     DB_HOST: str = "localhost"
     DB_PORT: int = 5432
@@ -42,13 +42,13 @@ class Settings(BaseSettings):
     DB_USER: str = "username"
     DB_PASSWORD: str = "password"
     
-    # CORS 설정
+    # CORS configuration
     CORS_ORIGINS: list = ["*"]
     CORS_METHODS: list = ["*"]
     CORS_HEADERS: list = ["*"]
     
     class Config:
-        env_file = ".env"  # 현재 디렉토리의 .env 파일 참조
+        env_file = ".env"  # Reference to .env file in current directory
         case_sensitive = True
         extra = "ignore"
 

@@ -1,6 +1,6 @@
 """
-데이터베이스 스토리지 클래스
-사용자 프로필, 변환 기록, 선호도 관리
+Database Storage Class
+User profile, conversion records, and preference management
 """
 
 from datetime import datetime
@@ -13,13 +13,13 @@ from .models import (
 )
 
 class DatabaseStorage:
-    """데이터베이스 CRUD 작업을 위한 스토리지 클래스"""
+    """Storage class for database CRUD operations"""
     
     def __init__(self):
         self.session_factory = SessionLocal
 
     def get_user_profile(self, user_id: str) -> Optional[Dict[str, Any]]:
-        """사용자 프로필 조회"""
+        """Get user profile"""
         with self.session_factory() as db:
             try:
                 profile = db.query(UserProfile).filter(UserProfile.user_id == user_id).first()
@@ -41,24 +41,24 @@ class DatabaseStorage:
                     "updatedAt": profile.updated_at.isoformat() if profile.updated_at is not None else None
                 }
             except Exception as e:
-                print(f"사용자 프로필 조회 오류: {e}")
+                print(f"User profile retrieval error: {e}")
                 return None
 
     def save_user_profile(self, user_id: str, profile_data: Dict[str, Any]) -> bool:
-        """사용자 프로필 저장"""
+        """Save user profile"""
         with self.session_factory() as db:
             try:
-                # 기존 프로필 조회
+                # Get existing profile
                 profile = db.query(UserProfile).filter(UserProfile.user_id == user_id).first()
                 
                 if profile:
-                    # 기존 프로필 업데이트
+                    # Update existing profile
                     profile.base_formality_level = profile_data.get('baseFormalityLevel', profile.base_formality_level)
                     profile.base_friendliness_level = profile_data.get('baseFriendlinessLevel', profile.base_friendliness_level)
                     profile.base_emotion_level = profile_data.get('baseEmotionLevel', profile.base_emotion_level)
                     profile.base_directness_level = profile_data.get('baseDirectnessLevel', profile.base_directness_level)
                     
-                    # 세션 레벨 업데이트 (NULL 허용)
+                    # Update session levels (allow NULL)
                     if 'sessionFormalityLevel' in profile_data:
                         profile.session_formality_level = profile_data['sessionFormalityLevel']
                     if 'sessionFriendlinessLevel' in profile_data:
@@ -70,7 +70,7 @@ class DatabaseStorage:
                     
                     profile.questionnaire_responses = profile_data.get('questionnaireResponses', {})
                 else:
-                    # 새 프로필 생성
+                    # Create new profile
                     profile = UserProfile(
                         user_id=user_id,
                         base_formality_level=profile_data.get('baseFormalityLevel', 3),
@@ -90,11 +90,11 @@ class DatabaseStorage:
                 
             except Exception as e:
                 db.rollback()
-                print(f"사용자 프로필 저장 오류: {e}")
+                print(f"User profile save error: {e}")
                 return False
 
     def save_conversion(self, user_id: str, conversion_data: Dict[str, Any]) -> bool:
-        """변환 기록 저장"""
+        """Save conversion record"""
         with self.session_factory() as db:
             try:
                 conversion = ConversionHistory(
@@ -116,11 +116,11 @@ class DatabaseStorage:
                 
             except Exception as e:
                 db.rollback()
-                print(f"변환 기록 저장 오류: {e}")
+                print(f"Conversion record save error: {e}")
                 return False
 
     def get_conversion_history(self, user_id: str, limit: int = 10) -> List[Dict[str, Any]]:
-        """사용자 변환 기록 조회"""
+        """Get user conversion history"""
         with self.session_factory() as db:
             try:
                 conversions = db.query(ConversionHistory)\
@@ -144,11 +144,11 @@ class DatabaseStorage:
                 ]
                 
             except Exception as e:
-                print(f"변환 기록 조회 오류: {e}")
+                print(f"Conversion history retrieval error: {e}")
                 return []
 
     def get_negative_preferences(self, user_id: str) -> Optional[Dict[str, Any]]:
-        """사용자 네거티브 선호도 조회"""
+        """Get user negative preferences"""
         with self.session_factory() as db:
             try:
                 prefs = db.query(NegativePreferences)\
@@ -169,19 +169,19 @@ class DatabaseStorage:
                 }
                 
             except Exception as e:
-                print(f"네거티브 선호도 조회 오류: {e}")
+                print(f"Negative preferences retrieval error: {e}")
                 return None
 
     def save_negative_preferences(self, user_id: str, preferences: Dict[str, Any]) -> bool:
-        """사용자 네거티브 선호도 저장"""
+        """Save user negative preferences"""
         with self.session_factory() as db:
             try:
-                # 기존 선호도 조회
+                # Get existing preferences
                 prefs = db.query(NegativePreferences)\
                     .filter(NegativePreferences.user_id == user_id).first()
                 
                 if prefs:
-                    # 기존 선호도 업데이트
+                    # Update existing preferences
                     prefs.avoid_flowery_language = preferences.get('avoidFloweryLanguage', prefs.avoid_flowery_language)
                     prefs.avoid_repetitive_words = preferences.get('avoidRepetitiveWords', prefs.avoid_repetitive_words)
                     prefs.comma_usage_style = preferences.get('commaUsageStyle', prefs.comma_usage_style)
@@ -189,9 +189,9 @@ class DatabaseStorage:
                     prefs.bullet_point_usage = preferences.get('bulletPointUsage', prefs.bullet_point_usage)
                     prefs.emoticon_usage = preferences.get('emoticonUsage', prefs.emoticon_usage)
                     prefs.custom_negative_prompts = preferences.get('customNegativePrompts', [])
-                    # updated_at은 자동으로 SQLAlchemy에서 처리됨
+                    # updated_at is automatically handled by SQLAlchemy
                 else:
-                    # 새 선호도 생성
+                    # Create new preferences
                     prefs = NegativePreferences(
                         user_id=user_id,
                         avoid_flowery_language=preferences.get('avoidFloweryLanguage', 'moderate'),
@@ -209,29 +209,29 @@ class DatabaseStorage:
                 
             except Exception as e:
                 db.rollback()
-                print(f"네거티브 선호도 저장 오류: {e}")
+                print(f"Negative preferences save error: {e}")
                 return False
 
-    # RAG 벡터 메타데이터 관련 메소드들
+    # RAG vector metadata related methods
     def save_vector_document_metadata(self, metadata: Dict[str, Any]) -> bool:
-        """벡터 문서 메타데이터 저장"""
+        """Save vector document metadata"""
         with self.session_factory() as db:
             try:
-                # 문서 해시 생성
+                # Generate document hash
                 content = f"{metadata['file_path']}{metadata['file_size_bytes']}{metadata.get('content_hash', '')}"
                 document_hash = hashlib.sha256(content.encode()).hexdigest()
 
-                # 기존 메타데이터 확인
+                # Check existing metadata
                 existing = db.query(VectorDocumentMetadata)\
                     .filter(VectorDocumentMetadata.document_hash == document_hash).first()
 
                 if existing:
-                    # 기존 메타데이터 업데이트
+                    # Update existing metadata
                     existing.last_accessed = datetime.utcnow()
                     existing.status = metadata.get('status', 'active')
                     existing.updated_at = datetime.utcnow()
                 else:
-                    # 새 메타데이터 생성
+                    # Create new metadata
                     doc_metadata = VectorDocumentMetadata(
                         document_hash=document_hash,
                         file_name=metadata['file_name'],
@@ -253,11 +253,11 @@ class DatabaseStorage:
 
             except Exception as e:
                 db.rollback()
-                print(f"벡터 문서 메타데이터 저장 오류: {e}")
+                print(f"Vector document metadata save error: {e}")
                 return False
 
     def get_vector_document_metadata(self, document_hash: Optional[str] = None) -> List[Dict[str, Any]]:
-        """벡터 문서 메타데이터 조회"""
+        """Get vector document metadata"""
         with self.session_factory() as db:
             try:
                 query = db.query(VectorDocumentMetadata)
@@ -291,14 +291,14 @@ class DatabaseStorage:
                 ]
 
             except Exception as e:
-                print(f"벡터 문서 메타데이터 조회 오류: {e}")
+                print(f"Vector document metadata retrieval error: {e}")
                 return []
 
     def save_rag_query(self, user_id: str, query_data: Dict[str, Any]) -> bool:
-        """RAG 질의 기록 저장"""
+        """Save RAG query record"""
         with self.session_factory() as db:
             try:
-                # 질의 해시 생성
+                # Generate query hash
                 query_hash = hashlib.sha256(query_data['query_text'].encode()).hexdigest()
 
                 rag_query = RAGQueryHistory(
@@ -324,11 +324,11 @@ class DatabaseStorage:
 
             except Exception as e:
                 db.rollback()
-                print(f"RAG 질의 기록 저장 오류: {e}")
+                print(f"RAG query record save error: {e}")
                 return False
 
     def get_rag_query_history(self, user_id: str, limit: int = 10) -> List[Dict[str, Any]]:
-        """RAG 질의 기록 조회"""
+        """Get RAG query history"""
         with self.session_factory() as db:
             try:
                 queries = db.query(RAGQueryHistory)\
@@ -358,11 +358,11 @@ class DatabaseStorage:
                 ]
 
             except Exception as e:
-                print(f"RAG 질의 기록 조회 오류: {e}")
+                print(f"RAG query history retrieval error: {e}")
                 return []
 
     def update_vector_document_access(self, document_hash: str) -> bool:
-        """벡터 문서 접근 시간 업데이트"""
+        """Update vector document access time"""
         with self.session_factory() as db:
             try:
                 metadata = db.query(VectorDocumentMetadata)\
@@ -377,5 +377,5 @@ class DatabaseStorage:
 
             except Exception as e:
                 db.rollback()
-                print(f"벡터 문서 접근 시간 업데이트 오류: {e}")
+                print(f"Vector document access time update error: {e}")
                 return False

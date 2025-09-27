@@ -1,4 +1,4 @@
-# 데이터베이스 패키지
+# Database package
 from .models import get_db, SessionLocal, Base
 from .storage import DatabaseStorage
 

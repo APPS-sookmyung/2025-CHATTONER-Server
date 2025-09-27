@@ -1,6 +1,6 @@
 """
 RAG (Retrieval-Augmented Generation) Endpoints
-문서 기반 질의응답 및 텍스트 품질 분석 엔드포인트
+Document-based Q&A and text quality analysis endpoints
 """
 
 from fastapi import APIRouter, HTTPException, Depends
@@ -43,20 +43,20 @@ class RAGStatusResponse(BaseModel):
     documents_path: str
     index_path: str
 
-# RAG Service 싱글톤
+# RAG Service singleton
 _rag_service_instance = None
 
 def get_rag_service():
-    """RAG 서비스 싱글톤 인스턴스"""
+    """RAG service singleton instance"""
     global _rag_service_instance
     if _rag_service_instance is None:
         try:
             from services.rag_service import RAGService
             _rag_service_instance = RAGService()
         except ImportError as e:
-            raise HTTPException(status_code=503, detail=f"RAG 서비스를 사용할 수 없습니다: {str(e)}") from e
+            raise HTTPException(status_code=503, detail=f"RAG service is not available: {str(e)}") from e
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"RAG 서비스 초기화 실패: {str(e)}") from e
+            raise HTTPException(status_code=500, detail=f"RAG service initialization failed: {str(e)}") from e
     return _rag_service_instance
 
 @router.post("/ingest", response_model=DocumentIngestResponse)
@@ -64,45 +64,45 @@ async def ingest_documents(
     request: DocumentIngestRequest,
     rag_service: Annotated[object, Depends(get_rag_service)]
 ) -> DocumentIngestResponse:
-    """문서 폴더에서 RAG 벡터 DB 생성"""
+    """Create RAG vector DB from document folder"""
     try:
         folder_path = Path(request.folder_path)
         
-        # 상대 경로인 경우, 프로젝트 루트 기준으로 절대 경로로 변환
+        # Convert relative path to absolute path based on project root
         if not folder_path.is_absolute():
             project_root = Path(__file__).resolve().parents[4]  # 2025-CHATTONER-Server
             folder_path = project_root / folder_path
             
             
         if not folder_path.exists():
-            raise HTTPException(status_code=404, detail=f"문서 폴더를 찾을 수 없습니다: {request.folder_path} (resolved: {folder_path})")
+            raise HTTPException(status_code=404, detail=f"Document folder not found: {request.folder_path} (resolved: {folder_path})")
         
         result = rag_service.ingest_documents(str(folder_path))
         
         return DocumentIngestResponse(
             success=result.get("success", False),
             documents_processed=result.get("documents_processed", 0),
-            message="문서 인덱싱이 완료되었습니다." if result.get("success") else "문서 인덱싱에 실패했습니다.",
+            message="Document indexing completed." if result.get("success") else "Document indexing failed.",
             error=result.get("error") if not result.get("success") else None
         )
         
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"문서 인덱싱 중 오류가 발생했습니다: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error occurred during document indexing: {str(e)}")
 
 @router.post("/ask", response_model=RAGQueryResponse)
 async def ask_rag_question(
     request: RAGQueryRequest,
     rag_service: Annotated[object, Depends(get_rag_service)]
 ) -> RAGQueryResponse:
-    """RAG 기반 질의응답"""
+    """RAG-based Q&A"""
     try:
         if not request.query.strip():
-            raise HTTPException(status_code=400, detail="질문을 입력해주세요.")
+            raise HTTPException(status_code=400, detail="Please enter a question.")
         
         if request.use_styles and request.user_profile:
-            # 3가지 스타일 변환
+            # 3-style conversion
             result = await rag_service.ask_with_styles(
                 query=request.query,
                 user_profile=(request.user_profile.model_dump() if request.user_profile else None),
@@ -118,7 +118,7 @@ async def ask_rag_question(
                 metadata=result.get("metadata", {})
             )
         else:
-            # 단일 답변
+            # Single answer
             result = await rag_service.ask_question(
                 query=request.query,
                 context=request.context
@@ -135,11 +135,11 @@ async def ask_rag_question(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"질의응답 중 오류가 발생했습니다: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error occurred during Q&A: {str(e)}")
 
 @router.get("/status", response_model=RAGStatusResponse)
 async def get_rag_status(rag_service: Annotated[object, Depends(get_rag_service)]) -> RAGStatusResponse:
-    """RAG 시스템 상태 확인"""
+    """Check RAG system status"""
     try:
         status = rag_service.get_status()
         
@@ -152,24 +152,24 @@ async def get_rag_status(rag_service: Annotated[object, Depends(get_rag_service)
         )
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"상태 조회 중 오류가 발생했습니다: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error occurred while checking status: {str(e)}")
 
 @router.post("/analyze-grammar")
 async def analyze_text_grammar(
     request: RAGQueryRequest,
     rag_service: Annotated[object, Depends(get_rag_service)]
 ) -> RAGQueryResponse:
-    """RAG 기반 문법 분석 (GPT 대신 문서 기반)"""
+    """RAG-based grammar analysis (document-based instead of GPT)"""
     try:
         if not request.query.strip():
-            raise HTTPException(status_code=400, detail="분석할 텍스트를 입력해주세요.")
+            raise HTTPException(status_code=400, detail="Please enter text to analyze.")
         
-        # 문법 분석을 위한 특별한 쿼리 구성
-        grammar_query = f"다음 텍스트의 문법, 맞춤법, 표현을 분석하고 개선사항을 제시해주세요: {request.query}"
+        # Construct special query for grammar analysis
+        grammar_query = f"Please analyze the grammar, spelling, and expression of the following text and provide improvement suggestions: {request.query}"
         
         result = await rag_service.ask_question(
             query=grammar_query,
-            context="문법 분석"
+            context="grammar analysis"
         )
         
         return RAGQueryResponse(
@@ -187,25 +187,25 @@ async def analyze_text_grammar(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"문법 분석 중 오류가 발생했습니다: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error occurred during grammar analysis: {str(e)}")
 
 @router.post("/suggest-expressions")
 async def suggest_better_expressions(
     request: RAGQueryRequest,
     rag_service: Annotated[object, Depends(get_rag_service)]
 ) -> RAGQueryResponse:
-    """RAG 기반 표현 개선 제안"""
+    """RAG-based expression improvement suggestions"""
     try:
         if not request.query.strip():
-            raise HTTPException(status_code=400, detail="개선할 텍스트를 입력해주세요.")
+            raise HTTPException(status_code=400, detail="Please enter text to improve.")
         
-        # 표현 개선을 위한 특별한 쿼리 구성
+        # Construct special query for expression improvement
         context_type = request.context or "business"
-        improvement_query = f"{context_type} 맥락에서 다음 텍스트를 더 나은 표현으로 바꿔주세요: {request.query}"
+        improvement_query = f"Please change the following text to better expressions in {context_type} context: {request.query}"
         
         result = await rag_service.ask_question(
             query=improvement_query,
-            context=f"{context_type} 표현 개선"
+            context=f"{context_type} expression improvement"
         )
         
         return RAGQueryResponse(
@@ -224,4 +224,4 @@ async def suggest_better_expressions(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"표현 개선 제안 중 오류가 발생했습니다: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error occurred during expression improvement suggestion: {str(e)}")

@@ -1,13 +1,13 @@
 """
-FAISS 벡터스토어를 기반으로 문서를 인덱싱
-GPT 기반 LLM을 통해 문서 기반 질의응답 기능을 제공
-사용자의 말투 스타일에 맞춘 3가지 버전의 응답 적용
+Index documents based on FAISS vector store
+Provide document-based Q&A functionality through GPT-based LLM
+Apply 3 versions of responses tailored to user's speaking style
 
-주요 기능:
-- 문서 폴더에서 .txt 및 .pdf 파일을 불러와 벡터화 및 저장
-- 저장된 벡터 인덱스를 로드하여 검색 기반 질의응답 수행
-- 사용자 말투 프로필에 따른 스타일 변환 응답 제공
-- 시스템 상태 및 문서 인덱스 현황 확인 기능 포함
+Key Features:
+- Load .txt and .pdf files from document folders and vectorize and store them
+- Load stored vector index to perform search-based Q&A
+- Provide style-converted responses according to user speaking profile
+- Include system status and document index status checking functionality
 """
 
 import sys
@@ -17,7 +17,7 @@ import os
 from typing import Dict, Optional, Any
 from datetime import datetime
 
-# 프로젝트 경로 설정
+# Project path configuration
 project_root = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(project_root))
 
@@ -29,27 +29,27 @@ from dotenv import load_dotenv
 from core.config import get_settings 
 from langchain_pipeline.retriever.vector_db import ingest_documents_from_folder, FAISS_INDEX_PATH, get_embedding
 settings = get_settings()
-# 로거 설정
+# Logger configuration
 logger = logging.getLogger(__name__)
 
 class RAGChain:
-    """RAG (Retrieval-Augmented Generation) 체인"""
+    """RAG (Retrieval-Augmented Generation) chain"""
     
     def __init__(self, model_name: str = "gpt-4", temperature: float = 0.7):
-        """RAG Chain 초기화 (공통 설정 사용)"""
+        """Initialize RAG Chain (using common configuration)"""
         from core.rag_config import get_rag_config
 
-        # 공통 설정 로드
+        # Load common configuration
         self.config = get_rag_config()
 
-        # Services 지연 로딩 (필요시에만 초기화)
+        # Services lazy loading (initialize only when needed)
         self.services_available = False
         self._services_cache = {}
         self._check_services_availability()
 
         api_key = self.config.get_openai_api_key()
         if not api_key:
-            raise ValueError("OPENAI_API_KEY가 설정되지 않았습니다")
+            raise ValueError("OPENAI_API_KEY is not configured")
 
         self.llm = ChatOpenAI(
             model=model_name,
@@ -61,23 +61,23 @@ class RAGChain:
         self.retriever = None
         self.is_initialized = False
         
-        # 기본 프롬프트
+        # Default prompt
         self.default_rag_prompt = PromptTemplate.from_template("""
-다음 문서 내용을 바탕으로 질문에 답변해주세요.
+Please answer the question based on the following document content.
 
-문서:
+Document:
 {context}
 
-질문: {question}
+Question: {question}
 
-답변:
+Answer:
 """)
         
-        # 자동 초기화 시도
+        # Attempt automatic initialization
         self._load_vectorstore()
     
     def _check_services_availability(self):
-        """Services 가용성 확인 (실제 로드하지 않음)"""
+        """Check Services availability (without actually loading)"""
         import importlib.util
         
         required_modules = [
@@ -92,17 +92,17 @@ class RAGChain:
                 spec = importlib.util.find_spec(module_name)
                 if spec is None:
                     self.services_available = False
-                    logger.warning(f"Services 모듈 없음: {module_name}")
+                    logger.warning(f"Services module not found: {module_name}")
                     return
             
             self.services_available = True
-            logger.info("Services 모듈 가용성 확인 완료")
+            logger.info("Services module availability check completed")
         except Exception as e:
             self.services_available = False
-            logger.warning(f"Services 모듈 가용성 확인 실패: {e}")
+            logger.warning(f"Services module availability check failed: {e}")
     
     def _get_service(self, service_name: str):
-        """서비스 지연 로딩"""
+        """Service lazy loading"""
         if service_name in self._services_cache:
             return self._services_cache[service_name]
         
@@ -120,17 +120,17 @@ class RAGChain:
                 return None
             
             self._services_cache[service_name] = service
-            logger.info(f"{service_name} 로드 완료")
+            logger.info(f"{service_name} loading completed")
             return service
             
         except Exception as e:
-            logger.error(f"{service_name} 로드 실패: {e}")
+            logger.error(f"{service_name} loading failed: {e}")
             return None
     
     def _load_vectorstore(self):
-        """기존 인덱스 로드 (보안 강화)"""
+        """Load existing index (security enhanced)"""
         try:
-            # vector_db.py의 안전한 로드 함수 사용
+            # Use safe load function from vector_db.py
             from langchain_pipeline.retriever.vector_db import load_vector_store
 
             self.vectorstore = load_vector_store(FAISS_INDEX_PATH)
@@ -138,28 +138,28 @@ class RAGChain:
             if self.vectorstore:
                 self.retriever = self.vectorstore.as_retriever(search_kwargs={"k": 5})
                 self.is_initialized = True
-                logger.info(f"RAG Chain 안전하게 준비 완료: {self.vectorstore.index.ntotal}개 문서")
+                logger.info(f"RAG Chain safely prepared: {self.vectorstore.index.ntotal} documents")
             else:
-                logger.warning("벡터 저장소 로드 실패 - 인덱스가 없거나 신뢰할 수 없습니다")
+                logger.warning("Vector store loading failed - index is missing or untrustworthy")
 
         except Exception as e:
-            logger.warning(f"기존 인덱스 로드 실패: {e}")
+            logger.warning(f"Existing index loading failed: {e}")
     
     def ingest_documents(self, folder_path: str) -> Dict:
-        """문서 폴더에서 벡터 DB 생성"""
+        """Create vector DB from document folder"""
         try:
             result = ingest_documents_from_folder(Path(folder_path))
             if result and result[0] is not None:
-                self._load_vectorstore()  # 재로드
+                self._load_vectorstore()  # Reload
                 return {"success": True, "documents_processed": len(result[1])}
-            return {"success": False, "error": "문서 처리 실패"}
+            return {"success": False, "error": "Document processing failed"}
         except Exception as e:
             return {"success": False, "error": str(e)}
     
     def ask(self, query: str, context: Optional[str] = None) -> Dict:
-        """질문하기"""
+        """Ask question"""
         if not self.is_initialized:
-            return {"success": False, "answer": "문서가 인덱싱되지 않았습니다."}
+            return {"success": False, "answer": "Documents are not indexed."}
         
         try:
             qa_chain = RetrievalQA.from_chain_type(
@@ -170,15 +170,15 @@ class RAGChain:
                 return_source_documents=True
             )
             
-            # 쿼리 실행
+            # Execute query
             if context and context.strip():
-                enhanced_query = f"문맥: {context.strip()}\n\n질문: {query}"
+                enhanced_query = f"Context: {context.strip()}\n\nQuestion: {query}"
             else:
                 enhanced_query = query
 
             result = qa_chain.invoke({"query": enhanced_query})
             
-            # 결과 정리
+            # Organize results
             source_docs = result.get("source_documents", [])
             chunks = [
                 {
@@ -198,12 +198,12 @@ class RAGChain:
         except Exception as e:
             return {
                 "success": False,
-                "answer": f"오류 발생: {e}",
+                "answer": f"Error occurred: {e}",
                 "sources": []
             }
     
     async def ask_with_styles(self, query: str, user_profile: Dict, context: str = "personal") -> Dict:
-        """3가지 스타일 RAG 답변 (개선된 버전)"""
+        """3-style RAG answers (improved version)"""
         error_response = {
             "success": False,
             "converted_texts": {"direct": "", "gentle": "", "neutral": ""},
@@ -217,28 +217,28 @@ class RAGChain:
         # ConversionService 지연 로딩
         conversion_service = self._get_service("conversion_service")
         if not conversion_service:
-            error_response["error"] = "ConversionService를 로드할 수 없습니다."
+            error_response["error"] = "Cannot load ConversionService."
             return error_response
         
         if not self.is_initialized:
-            error_response["error"] = "RAG 시스템이 초기화되지 않았습니다."
+            error_response["error"] = "RAG system is not initialized."
             return error_response
         
         try:
-            # 문서 검색
+            # Document search
             docs = self.retriever.get_relevant_documents(query)
             if not docs:
-                error_response["error"] = "관련 문서를 찾을 수 없습니다."
+                error_response["error"] = "No related documents found."
                 return error_response
             
-            # 검색된 문서를 컨텍스트로 구성
+            # Organize retrieved documents as context
             context_parts = []
             sources = []
             
             for i, doc in enumerate(docs, 1):
-                source = doc.metadata.get("source", f"문서_{i}")
+                source = doc.metadata.get("source", f"Document_{i}")
                 content = doc.page_content
-                context_parts.append(f"[참고문서 {i}] ({source}):\n{content}")
+                context_parts.append(f"[Reference Document {i}] ({source}):\n{content}")
                 
                 sources.append({
                     "content": content[:100] + "..." if len(content) > 100 else content,
@@ -247,16 +247,16 @@ class RAGChain:
                 })
             
             retrieved_docs = "\n\n".join(context_parts)
-            enhanced_input = f"질문: {query}\n\n참고문서:\n{retrieved_docs}"
+            enhanced_input = f"Question: {query}\n\nReference Documents:\n{retrieved_docs}"
             
-            # ConversionService로 스타일 변환
+            # Style conversion through ConversionService
             result = await conversion_service.convert_text(
                 input_text=enhanced_input,
                 user_profile=user_profile,
                 context=context
             )
             
-            # RAG 관련 정보 추가
+            # Add RAG-related information
             if result.get("success"):
                 result["sources"] = sources
                 result["rag_context"] = retrieved_docs[:300] + "..." if len(retrieved_docs) > 300 else retrieved_docs
@@ -266,8 +266,8 @@ class RAGChain:
             return result
             
         except Exception as e:
-            logger.error(f"스타일 변환 중 오류: {e}")
-            error_response["error"] = f"스타일 변환 중 오류 발생: {str(e)}"
+            logger.error(f"Error during style conversion: {e}")
+            error_response["error"] = f"Error occurred during style conversion: {str(e)}"
             return error_response
         
     async def process_user_feedback(self,
@@ -275,9 +275,9 @@ class RAGChain:
                                    user_profile: Dict[str, Any],
                                    rating: Optional[int] = None,
                                    selected_version: str = "neutral") -> Dict[str, Any]:
-        """사용자 피드백 처리 - 고급/기본 처리 선택 (개선된 버전)"""
+        """User feedback processing - advanced/basic processing selection (improved version)"""
         try:
-            # 고급 처리 시도 (UserPreferencesService)
+            # Attempt advanced processing (UserPreferencesService)
             if rating is not None:
                 user_preferences_service = self._get_service("user_preferences_service")
                 if user_preferences_service:
@@ -290,7 +290,7 @@ class RAGChain:
                     )
                     
                     if success:
-                        logger.info(f"고급 피드백 처리 완료: user_id={user_id}, rating={rating}")
+                        logger.info(f"Advanced feedback processing completed: user_id={user_id}, rating={rating}")
                         return {
                             "success": True,
                             "updated_profile": user_profile.copy(),
@@ -299,17 +299,17 @@ class RAGChain:
                             "processing_method": "user_preferences_service"
                         }
             
-            # 기본 처리 (ConversionService)
+            # Basic processing (ConversionService)
             conversion_service = self._get_service("conversion_service")
             if not conversion_service:
                 return {
                     "success": False,
-                    "error": "피드백 처리 서비스가 초기화되지 않았습니다.",
+                    "error": "Feedback processing service is not initialized.",
                     "updated_profile": user_profile,
                     "processing_method": "none"
                 }
             
-            # ConversionService의 기본 피드백 처리 활용
+            # Utilize ConversionService's basic feedback processing
             result = await conversion_service.process_user_feedback(
                 feedback_text=feedback_text,
                 user_profile=user_profile
@@ -318,7 +318,7 @@ class RAGChain:
             return result
             
         except Exception as e:
-            logger.error(f"피드백 처리 오류: {e}")
+            logger.error(f"Feedback processing error: {e}")
             return {
                 "success": False,
                 "error": str(e),
@@ -327,7 +327,7 @@ class RAGChain:
             }
             
     def get_status(self) -> Dict:
-        """상태 정보"""
+        """Status information"""
         return {
             "rag_status": "ready" if self.is_initialized else "not_ready",
             "doc_count": self.vectorstore.index.ntotal if self.is_initialized else 0,

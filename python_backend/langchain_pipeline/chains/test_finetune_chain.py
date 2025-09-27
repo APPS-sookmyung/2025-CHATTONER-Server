@@ -1,8 +1,8 @@
 """
-FinetuneChain 테스트 스크립트 - force_convert 플래그 포함 버전
-LoRA 파인튜닝 모델과 ChatGPT 2단계 변환 파이프라인 테스트
+FinetuneChain Test Script - Version with force_convert flag
+Test LoRA fine-tuning model and ChatGPT 2-stage conversion pipeline
 
-실행 방법:
+Execution method:
 python test_finetune_chain.py
 """
 
@@ -12,13 +12,13 @@ import logging
 from pathlib import Path
 from datetime import datetime
 
-# 프로젝트 경로 설정
+# Project path configuration
 project_root = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(project_root))
 
 from langchain_pipeline.chains.finetune_chain import FinetuneChain
 
-# 로깅 설정
+# Logging configuration
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -26,37 +26,37 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 def test_should_use_lora():
-    """LoRA 사용 조건 테스트 (수정된 로직)"""
-    print("\nLoRA 사용 조건 단위 테스트")
+    """Test LoRA usage conditions (modified logic)"""
+    print("\nLoRA Usage Condition Unit Test")
     print("=" * 40)
     
     try:
         chain = FinetuneChain.__new__(FinetuneChain)
         
         test_cases = [
-            # 격식도 5 이상 - 무조건 True
+            # Formality level 5 or higher - always True
             ({"baseFormalityLevel": 5}, "personal", True),
             ({"baseFormalityLevel": 5}, "business", True),
             
-            # 격식도 4 + business/report - True
+            # Formality level 4 + business/report - True
             ({"baseFormalityLevel": 4}, "business", True),
             ({"baseFormalityLevel": 4}, "report", True),
-            ({"baseFormalityLevel": 4}, "personal", False),  # personal은 안됨
+            ({"baseFormalityLevel": 4}, "personal", False),  # personal is not allowed
             
-            # 격식도 3 - business/report여도 False
+            # Formality level 3 - False even for business/report
             ({"baseFormalityLevel": 3}, "business", False),
             ({"baseFormalityLevel": 3}, "report", False),
             ({"baseFormalityLevel": 3}, "personal", False),
             
-            # formal_document_mode = True - 무조건 True
+            # formal_document_mode = True - always True
             ({"baseFormalityLevel": 2, "formal_document_mode": True}, "personal", True),
             ({"baseFormalityLevel": 1, "formal_document_mode": True}, "business", True),
             
-            # sessionFormalityLevel 우선 적용
+            # sessionFormalityLevel takes priority
             ({"sessionFormalityLevel": 5, "baseFormalityLevel": 2}, "business", True),
             ({"sessionFormalityLevel": 3, "baseFormalityLevel": 5}, "business", False),
             
-            # 빈 프로필 (기본값 3) - False
+            # Empty profile (default 3) - False
             ({}, "business", False),
             ({}, "report", False),
             ({}, "personal", False),
@@ -64,50 +64,50 @@ def test_should_use_lora():
         
         for profile, context, expected in test_cases:
             result = chain._should_use_lora(profile, context)
-            status = "통과" if result == expected else "실패"
+            status = "PASS" if result == expected else "FAIL"
             print(f"[{status}] 프로필: {profile}, 컨텍스트: {context} -> {result} (예상: {expected})")
             
     except Exception as e:
-        print(f"[오류] 단위 테스트 실패: {e}")
+        print(f"[ERROR] Unit test failed: {e}")
 
 async def test_force_convert():
-    """사용자 명시적 요청 테스트"""
-    print("\n사용자 명시적 요청 테스트")
+    """Test user explicit request"""
+    print("\nUser Explicit Request Test")
     print("=" * 60)
     
     try:
         finetune_chain = FinetuneChain()
     except Exception as e:
-        print(f"[오류] FinetuneChain 초기화 실패: {e}")
+        print(f"[ERROR] FinetuneChain initialization failed: {e}")
         return
     
-    # 원래는 변환 조건에 안 맞는 케이스들
+    # Cases that originally don't meet conversion conditions
     force_test_cases = [
         {
             "input": "안녕! 오늘 뭐해?",
             "profile": {"baseFormalityLevel": 1},  
             "context": "personal",  
-            "description": "캐주얼 + 개인적 대화 (원래는 변환 안됨)"
+            "description": "Casual + personal conversation (originally no conversion)"
         },
         {
             "input": "ㅋㅋㅋ 재밌네 ㅎㅎ 😂",
             "profile": {"baseFormalityLevel": 2},
             "context": "casual",
-            "description": "이모티콘 포함 캐주얼 메시지"
+            "description": "Casual message with emoticons"
         },
         {
             "input": "빨리빨리 해주세요!!",
             "profile": {},  
             "context": "personal",
-            "description": "빈 프로필 + 급한 요청"
+            "description": "Empty profile + urgent request"
         }
     ]
     
     for i, test_case in enumerate(force_test_cases, 1):
-        print(f"\n[강제변환 테스트 {i}] {test_case['description']}")
+        print(f"\n[Force Conversion Test {i}] {test_case['description']}")
         print(f"원본: {test_case['input']}")
         
-        # 1. 일반 변환 (force_convert=False) - 실패 예상
+        # 1. Normal conversion (force_convert=False) - expected to fail
         try:
             result_normal = await finetune_chain.convert_to_formal(
                 input_text=test_case['input'],
@@ -117,14 +117,14 @@ async def test_force_convert():
             )
             
             if result_normal['success']:
-                print("일반 변환: [성공] (예상치 못함)")
-                print(f"   결과: {result_normal['converted_text']}")
+                print("Normal conversion: [SUCCESS] (unexpected)")
+                print(f"   Result: {result_normal['converted_text']}")
             else:
-                print(f"일반 변환: [실패] {result_normal['error']}")
+                print(f"Normal conversion: [FAIL] {result_normal['error']}")
         except Exception as e:
-            print(f"일반 변환: [오류] {e}")
+            print(f"Normal conversion: [ERROR] {e}")
         
-        # 2. 강제 변환 (force_convert=True) - 성공 예상
+        # 2. Force conversion (force_convert=True) - expected to succeed
         try:
             result_forced = await finetune_chain.convert_to_formal(
                 input_text=test_case['input'],
@@ -134,33 +134,33 @@ async def test_force_convert():
             )
             
             if result_forced['success']:
-                print(f"강제 변환: [성공] ({result_forced['method']})")
-                print(f"   결과: {result_forced['converted_text']}")
-                print(f"   변환 이유: {result_forced['reason']}")
-                print(f"   강제 모드: {result_forced['forced']}")
+                print(f"Force conversion: [SUCCESS] ({result_forced['method']})")
+                print(f"   Result: {result_forced['converted_text']}")
+                print(f"   Conversion reason: {result_forced['reason']}")
+                print(f"   Force mode: {result_forced['forced']}")
             else:
-                print(f"강제 변환: [실패] {result_forced['error']}")
+                print(f"Force conversion: [FAIL] {result_forced['error']}")
         except Exception as e:
-            print(f"강제 변환: [오류] {e}")
+            print(f"Force conversion: [ERROR] {e}")
         
         print("-" * 60)
 
 async def test_convenience_method():
-    """편의 메서드 테스트"""
-    print("\n편의 메서드 테스트")
+    """Test convenience methods"""
+    print("\nConvenience Method Test")
     print("=" * 40)
     
     try:
         finetune_chain = FinetuneChain()
     except Exception as e:
-        print(f"[오류] FinetuneChain 초기화 실패: {e}")
+        print(f"[ERROR] FinetuneChain initialization failed: {e}")
         return
     
     test_input = "야 이거 언제 하냐?"
     test_profile = {"baseFormalityLevel": 1}
     
     try:
-        # convert_by_user_request 메서드 테스트
+        # Test convert_by_user_request method
         result = await finetune_chain.convert_by_user_request(
             input_text=test_input,
             user_profile=test_profile,
@@ -168,45 +168,45 @@ async def test_convenience_method():
         )
         
         if result['success']:
-            print("[성공] 편의 메서드")
-            print(f"원본: {test_input}")
-            print(f"변환: {result['converted_text']}")
-            print(f"강제 변환: {result['forced']}")
-            print(f"변환 이유: {result['reason']}")
-            print(f"사용 방법: {result['method']}")
+            print("[SUCCESS] Convenience method")
+            print(f"Original: {test_input}")
+            print(f"Converted: {result['converted_text']}")
+            print(f"Force conversion: {result['forced']}")
+            print(f"Conversion reason: {result['reason']}")
+            print(f"Method used: {result['method']}")
         else:
-            print(f"[실패] 편의 메서드: {result['error']}")
+            print(f"[FAIL] Convenience method: {result['error']}")
     except Exception as e:
-        print(f"[오류] 편의 메서드: {e}")
+        print(f"[ERROR] Convenience method: {e}")
 
 async def test_finetune_chain():
-    """FinetuneChain 통합 테스트"""
+    """FinetuneChain integration test"""
     print("=" * 60)
-    print("FinetuneChain 통합 테스트 시작")
+    print("FinetuneChain Integration Test Started")
     print("=" * 60)
     
-    # 1. FinetuneChain 초기화
+    # 1. Initialize FinetuneChain
     try:
-        print("\nFinetuneChain 초기화 중...")
+        print("\nInitializing FinetuneChain...")
         finetune_chain = FinetuneChain()
-        print("[성공] FinetuneChain 초기화 완료")
+        print("[SUCCESS] FinetuneChain initialization completed")
     except Exception as e:
-        print(f"[오류] FinetuneChain 초기화 실패: {e}")
+        print(f"[ERROR] FinetuneChain initialization failed: {e}")
         return
     
-    # 2. 시스템 상태 확인
-    print("\n시스템 상태 확인")
+    # 2. Check system status
+    print("\nSystem Status Check")
     print("=" * 40)
     status = finetune_chain.get_status()
     
-    print(f"LoRA 상태: {status['lora_status']}")
-    print(f"Services 사용 가능: {status['services_available']}")
-    print(f"기본 모델 로드됨: {status['base_model_loaded']}")
-    print(f"디바이스: {status['device']}")
-    print(f"LoRA 모델 경로: {status['lora_model_path']}")
-    print(f"모델명: {status.get('model_name', 'N/A')}")
+    print(f"LoRA status: {status['lora_status']}")
+    print(f"Services available: {status['services_available']}")
+    print(f"Base model loaded: {status['base_model_loaded']}")
+    print(f"Device: {status['device']}")
+    print(f"LoRA model path: {status['lora_model_path']}")
+    print(f"Model name: {status.get('model_name', 'N/A')}")
     
-    # 3. 테스트용 사용자 프로필 설정
+    # 3. Set test user profiles
     test_user_profiles = {
         "high_formal": {
             "baseFormalityLevel": 5, 
@@ -382,47 +382,47 @@ async def test_finetune_chain():
     
     for test in condition_tests:
         should_use = finetune_chain._should_use_lora(test['profile'], test['context'])
-        label = "통과" if should_use == test['should_use_lora'] else "실패"
-        print(f"[{label}] {test['name']}: LoRA 사용 {should_use} (예상: {test['should_use_lora']})")
+        label = "PASS" if should_use == test['should_use_lora'] else "FAIL"
+        print(f"[{label}] {test['name']}: LoRA usage {should_use} (expected: {test['should_use_lora']})")
     
-    # 7. 성능 및 메모리 정보
-    print("\n성능 정보")
+    # 7. Performance and memory information
+    print("\nPerformance Information")
     print("=" * 40)
     
     device = status.get('device', 'unknown')
     if device == 'cuda':
-        # 로컬 GPU 정보만 조회
+        # Query only local GPU information
         try:
             import torch
-            print(f"GPU 메모리 사용량: {torch.cuda.memory_allocated() / 1024**3:.2f} GB")
-            print(f"GPU 메모리 최대: {torch.cuda.max_memory_allocated() / 1024**3:.2f} GB")
-            print(f"GPU 디바이스: {torch.cuda.get_device_name()}")
+            print(f"GPU memory usage: {torch.cuda.memory_allocated() / 1024**3:.2f} GB")
+            print(f"GPU memory max: {torch.cuda.max_memory_allocated() / 1024**3:.2f} GB")
+            print(f"GPU device: {torch.cuda.get_device_name()}")
         except Exception as e:
-            print(f"[경고] GPU 정보 조회 실패: {e}")
+            print(f"[WARNING] Failed to query GPU information: {e}")
     else:
-        print("CPU 모드로 실행 중")
+        print("Running in CPU mode")
     
-    print("\nFinetuneChain 기본 테스트 완료!")
+    print("\nFinetuneChain basic test completed!")
 
 async def main():
-    """메인 테스트 실행"""
-    print("FinetuneChain 전체 테스트 시작!")
+    """Main test execution"""
+    print("FinetuneChain Full Test Started!")
     print("=" * 80)
     
-    # 1. 조건 테스트
+    # 1. Condition tests
     test_should_use_lora()
     
-    # 2. 메인 통합 테스트
+    # 2. Main integration test
     await test_finetune_chain()
     
-    # 3. 강제 변환 테스트
+    # 3. Force conversion test
     await test_force_convert()
     
-    # 4. 편의 메서드 테스트
+    # 4. Convenience method test
     await test_convenience_method()
     
     print("\n" + "=" * 80)
-    print("모든 테스트 완료!")
+    print("All tests completed!")
     print("=" * 80)
 
 if __name__ == "__main__":

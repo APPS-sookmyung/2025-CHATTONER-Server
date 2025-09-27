@@ -1,6 +1,6 @@
 """
 Dependency Injection Container
-GitHub 기반 의존성 주입 컨테이너
+GitHub-based dependency injection container
 """
 
 from dependency_injector import containers, providers
@@ -13,15 +13,15 @@ from services.finetune_service import FinetuneService
 from database.storage import DatabaseStorage
 
 class Container(containers.DeclarativeContainer):
-    """의존성 주입 컨테이너"""
+    """Dependency injection container"""
     
-    # 설정
+    # Configuration
     config = providers.Configuration()
     
-    # 설정 프로바이더
+    # Configuration provider
     settings = providers.Singleton(get_settings)
     
-    # 코어 서비스들
+    # Core services
     prompt_engineer = providers.Singleton(PromptEngineer)
     
     openai_service = providers.Singleton(
@@ -36,14 +36,14 @@ class Container(containers.DeclarativeContainer):
         openai_service=openai_service
     )
     
-    # 메인 변환 서비스
+    # Main conversion service
     conversion_service = providers.Singleton(
         ConversionService,
         prompt_engineer=prompt_engineer,
         openai_service=openai_service
     )
 
-    # 파인튜닝 서비스
+    # Fine-tuning service
     finetune_service = providers.Singleton(
         FinetuneService,
         prompt_engineer=prompt_engineer,
