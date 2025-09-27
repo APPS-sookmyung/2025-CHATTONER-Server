@@ -1,6 +1,6 @@
 """
 Feedback Endpoints
-피드백 처리 엔드포인트
+Feedback processing endpoint
 """
 
 from fastapi import APIRouter, HTTPException, Depends
@@ -16,7 +16,7 @@ router = APIRouter()
 class FeedbackRequest(BaseModel):
     conversionId: int
     selectedVersion: str  # direct, gentle, neutral
-    rating: int  # 1-5 점수
+    rating: int  # 1-5 score
     userId: str = "default"
     feedback_text: str = ""
 
@@ -39,12 +39,12 @@ async def submit_feedback(
     feedback: FeedbackRequest,
     user_service: UserPreferencesService = Depends(get_user_preferences_service)
 ) -> FeedbackResponse:
-    """사용자 피드백 처리 및 학습"""
+    """Process and learn from user feedback"""
     try:
-        # 피드백 기반 사용자 선호도 조정
+        # Adjust user preferences based on feedback
         adjustments = {}
         
-        # 선택한 버전과 평점에 따른 선호도 조정 로직
+        # Logic for adjusting preferences based on selected version and rating
         if feedback.selectedVersion == "direct" and feedback.rating >= 4:
             adjustments["directness_preference"] = "increased"
         elif feedback.selectedVersion == "gentle" and feedback.rating >= 4:
@@ -52,17 +52,17 @@ async def submit_feedback(
         elif feedback.selectedVersion == "neutral" and feedback.rating >= 4:
             adjustments["balance_preference"] = "maintained"
         
-        # 낮은 평점의 경우 반대 방향으로 조정
+        # Adjust in the opposite direction for low ratings
         if feedback.rating <= 2:
             if feedback.selectedVersion == "direct":
                 adjustments["directness_preference"] = "decreased"
             elif feedback.selectedVersion == "gentle":
                 adjustments["politeness_preference"] = "decreased"
         
-        # 실제 학습 로직 (활성화됨)
+        # Actual learning logic (activated)
         user_service.process_feedback(feedback.userId, adjustments)
         
-        # 피드백 데이터베이스 저장 (활성화됨)
+        # Save feedback to database (activated)
         was_saved = user_service.save_feedback(feedback)
 
         if not was_saved:
@@ -70,20 +70,20 @@ async def submit_feedback(
         
         return FeedbackResponse(
             status="success",
-            message="피드백이 성공적으로 처리되었습니다. 선호도가 업데이트되었습니다.",
+            message="Feedback has been processed successfully. Preferences have been updated.",
             adjustments_made=adjustments
         )
         
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"피드백 처리 실패: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to process feedback: {str(e)}")
 
 @router.get("/stats/{user_id}")
 async def get_feedback_stats(user_id: str) -> Dict[str, Any]:
-    """사용자의 피드백 통계 조회"""
+    """Retrieve user's feedback statistics"""
     try:
-        # 실제 통계 조회 (활성화됨)
+        # Actual statistics retrieval (activated)
         stats = user_service.get_feedback_stats(user_id)
         
         if stats is not None:
@@ -94,4 +94,4 @@ async def get_feedback_stats(user_id: str) -> Dict[str, Any]:
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"통계 조회 실패: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve statistics: {str(e)}")

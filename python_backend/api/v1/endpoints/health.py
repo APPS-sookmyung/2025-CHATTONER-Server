@@ -1,6 +1,6 @@
 """
 Health Check Endpoint
-서버 상태 확인을 위한 엔드포인트
+Endpoint for checking server status
 """
 
 import os
@@ -12,12 +12,12 @@ from core.config import get_settings
 router = APIRouter()
 
 class HealthResponse(BaseModel):
-    """헬스체크 응답 모델"""
-    status: str = Field(..., description="서버 상태", example="ok")
-    service: str = Field(..., description="서비스 이름", example="chat-toner-fastapi")
-    openai_available: bool = Field(..., description="OpenAI 연결 상태", example=True)
-    prompt_engineering_available: bool = Field(..., description="프롬프트 엔지니어링 상태", example=True)
-    features: Dict[str, bool] = Field(..., description="사용 가능한 기능들")
+    """Health check response model"""
+    status: str = Field(..., description="Server status", example="ok")
+    service: str = Field(..., description="Service name", example="chat-toner-fastapi")
+    openai_available: bool = Field(..., description="OpenAI connection status", example=True)
+    prompt_engineering_available: bool = Field(..., description="Prompt engineering status", example=True)
+    features: Dict[str, bool] = Field(..., description="Available features")
     
     class Config:
         schema_extra = {
@@ -38,18 +38,18 @@ class HealthResponse(BaseModel):
 
 @router.get("/health", 
             response_model=HealthResponse,
-            summary="서버 상태 확인",
-            description="시스템 전체 상태 및 외부 서비스 연결을 확인합니다.")
+            summary="Check server status",
+            description="Checks the overall system status and external service connections.")
 async def health_check() -> HealthResponse:
     """
-    ## 서버 상태 확인
+    ## Check server status
     
-    Chat Toner 백엔드 서비스의 전반적인 상태를 확인합니다.
+    Checks the overall status of the Chat Toner backend service.
     
-    ### 확인 항목
-    - **OpenAI 연결 상태**
-    - **프롬프트 엔지니어링 서비스 상태**  
-    - **사용 가능한 기능 목록**
+    ### Items to check
+    - **OpenAI connection status**
+    - **Prompt engineering service status**  
+    - **List of available features**
     """
     settings = get_settings()
     return HealthResponse(
@@ -66,4 +66,4 @@ async def health_check() -> HealthResponse:
         }
     )
 
-# 중복 경로 제거 ("/api/health" → 삭제). 헬스체크는 "/health"만 제공합니다.
+# Duplicate path removal ("/api/health" → deleted). Health check is provided only at "/health".

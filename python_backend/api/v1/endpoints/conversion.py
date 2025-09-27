@@ -1,14 +1,14 @@
-"""텍스트 변환 API 엔드포인트
-신경 쓴 점: 
-- 라우터 분리 + DI 구성 
-- 의존성 주입 -> Depends + Provide 사용
+"""Text Conversion API Endpoint
+Things to note: 
+- Router separation + DI configuration 
+- Dependency injection -> Using Depends + Provide
 
-신경 써야 하는점: 
-1. 피드백 route 에 요청/응답 모델 정의
-2. exception 처리 개선 
-3. 공통 응답 메세지는 모델로 정의 
-4. 의미 있는 status code 분리 
-5. pydantic 모델이 request body 에서 명시적임을 보장 
+Things to be aware of: 
+1. Define request/response models for the feedback route
+2. Improve exception handling 
+3. Define common response messages as models 
+4. Separate meaningful status codes 
+5. Ensure that the pydantic model is explicit in the request body 
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -25,9 +25,9 @@ router = APIRouter()
 
 @router.get("/test")
 async def test_endpoint():
-    """간단한 테스트 엔드포인트"""
-    print("[DEBUG] 테스트 엔드포인트 호출됨")
-    return {"message": "테스트 성공", "status": "ok"}
+    """Simple test endpoint"""
+    print("[DEBUG] Test endpoint called")
+    return {"message": "Test successful", "status": "ok"}
 
 @router.post("/convert")
 async def convert_text(request: ConversionRequest, 
@@ -58,5 +58,5 @@ async def convert_text(request: ConversionRequest,
         import logging, traceback
         logger = logging.getLogger(__name__)
         logger.error("convert failed: %s\n%s", e, traceback.format_exc())
-        raise HTTPException(status_code=500, detail="텍스트 변환 중 서버 오류가 발생했습니다.")
+        raise HTTPException(status_code=500, detail="An error occurred on the server during text conversion.")
 

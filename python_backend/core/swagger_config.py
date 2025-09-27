@@ -19,9 +19,9 @@ def configure_swagger(app: FastAPI) -> None:
             title="ChatToner API",
             version="1.0.0",
             description="""
-            🎯 **ChatToner** - AI 기반 한국어 텍스트 개인화 서비스
+             **ChatToner** - AI 기반 한국어 텍스트 개인화 서비스
             
-            ## 🚀 주요 기능
+            ##  주요 기능
             - **텍스트 스타일 변환**: 사용자 맞춤 톤 변환 (격식/친근/중립)
             - **품질 분석**: 문법, 가독성, 격식성 자동 점검
             - **RAG 시스템**: 문서 기반 스타일 가이드 검색
@@ -37,12 +37,12 @@ def configure_swagger(app: FastAPI) -> None:
         )
 
         schema["tags"] = [
-            {"name": "health", "description": "🔍 서버 상태 및 연결 확인"},
-            {"name": "conversion", "description": "🎯 AI 기반 텍스트 스타일 변환 (핵심 기능)"},
-            {"name": "profile", "description": "👤 사용자 개인화 프로필 관리"},
-            {"name": "quality", "description": "📊 텍스트 품질 분석 (문법/가독성/격식성)"},
-            {"name": "feedback", "description": "💭 사용자 피드백 수집 및 AI 학습"},
-            {"name": "rag", "description": "📚 RAG 기반 문서 검색 및 지능형 질의응답"},
+            {"name": "health", "description": " 서버 상태 및 연결 확인"},
+            {"name": "conversion", "description": " AI 기반 텍스트 스타일 변환 (핵심 기능)"},
+            {"name": "profile", "description": " 사용자 개인화 프로필 관리"},
+            {"name": "quality", "description": " 텍스트 품질 분석 (문법/가독성/격식성)"},
+            {"name": "feedback", "description": " 사용자 피드백 수집 및 AI 학습"},
+            {"name": "rag", "description": " RAG 기반 문서 검색 및 지능형 질의응답"},
         ]
         """
         # 보안 스키마 

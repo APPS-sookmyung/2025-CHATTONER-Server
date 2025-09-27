@@ -1,4 +1,4 @@
-"""공통 API 의존성"""
+"""Common API dependencies"""
 
 from typing import Optional, Annotated
 from fastapi import Depends, HTTPException, Header
@@ -8,13 +8,13 @@ from services.conversion_service import ConversionService # Added import
 async def get_current_user_optional(
     x_user_id: Annotated[Optional[str], Header()] = None
 ) -> Optional[dict]:
-    """선택적 사용자 인증"""
+    """Optional user authentication"""
     if not x_user_id:
         return None
     
-    # 실제 사용자 검증 로직
+    # Actual user verification logic
     return {"user_id": x_user_id}
 
 def get_conversion_service() -> ConversionService: # Changed type hint
-    """ConversionService 인스턴스를 제공합니다."""
+    """Provides a ConversionService instance."""
     return Container.conversion_service()

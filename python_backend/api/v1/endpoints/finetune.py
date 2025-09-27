@@ -1,11 +1,11 @@
-"""파인튜닝 API 엔드포인트
-공식 문서 변환을 위한 LoRA 파인튜닝 모델 API
+"""Finetuning API Endpoint
+LoRA Finetuning Model API for Official Document Conversion
 
-주요 기능:
-- LoRA + ChatGPT 파이프라인을 통한 공식 문서 변환
-- 사용자 프로필 기반 자동/수동 변환 판단
-- DI 컨테이너를 통한 서비스 주입
-- 체계적인 예외 처리 및 로깅
+Main Functions:
+- Official document conversion through LoRA + ChatGPT pipeline
+- Automatic/manual conversion decision based on user profile
+- Service injection through DI container
+- Systematic exception handling and logging
 """
 
 from typing import Annotated
@@ -36,20 +36,20 @@ async def generate_with_model_only(
     ],
     current_user = Depends(get_current_user_optional) # noqa: B008
 ) -> FinetuneResponse:
-    """순수 파인튜닝된 모델만 사용하여 텍스트 생성 (ChatGPT 없이)"""
+    """Generate text using only the purely fine-tuned model (without ChatGPT)"""
     try:
-        logger.info(f"순수 모델 생성 요청 - 텍스트 길이: {len(request.text)}")
+        logger.info(f"Pure model generation request - text length: {len(request.text)}")
         
         if not request.text.strip():
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="입력 텍스트를 입력해주세요."
+                detail="Please enter the input text."
             )
         
         if len(request.text) > 5000:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="텍스트가 너무 깁니다. 5000자 이하로 입력해주세요."
+                detail="The text is too long. Please enter 5000 characters or less."
             )
         
         result = await finetune_service.generate_with_finetuned_model_only(

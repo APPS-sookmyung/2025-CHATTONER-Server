@@ -1,6 +1,6 @@
 """
 Text Quality Analysis Endpoints (RAG-based)
-RAG를 활용한 텍스트 품질 분석 및 제안 엔드포인트
+Text quality analysis and suggestion endpoint using RAG
 """
 
 from fastapi import APIRouter, HTTPException, Depends
@@ -9,7 +9,7 @@ import re
 import statistics
 from typing import Annotated, Dict, List, Any
 
-# RAG 서비스를 사용하도록 의존성 변경
+# Changed dependency to use RAG service
 from services.rag_service import RAGService
 from api.v1.schemas.quality import (
     QualityAnalysisRequest,
@@ -23,24 +23,24 @@ import logging
 logger = logging.getLogger('chattoner')
 router = APIRouter()
 
-# RAG 서비스 의존성 주입 함수
+# RAG service dependency injection function
 def get_rag_service():
-    """RAG 서비스 인스턴스 생성"""
+    """Create RAG service instance"""
     try:
         return RAGService()
     except Exception as e:
-        raise HTTPException(status_code=503, detail=f"RAG 서비스를 사용할 수 없습니다: {str(e)}")
+        raise HTTPException(status_code=503, detail=f"RAG service is not available: {str(e)}")
 
 def extract_json_from_text(text: str) -> Dict[str, Any]:
-    """텍스트에서 JSON 부분을 추출하고 파싱"""
+    """Extract and parse the JSON part from the text"""
     try:
-        # 첫 번째 시도: 전체 텍스트가 JSON인지 확인
+        # First attempt: Check if the entire text is JSON
         return json.loads(text.strip())
     except json.JSONDecodeError:
         pass
     
     try:
-        # 두 번째 시도: ```json 블록 찾기
+        # Second attempt: Find ```json block
         json_block_match = re.search(r'```json\s*\n(.*?)\n```', text, re.DOTALL)
         if json_block_match:
             return json.loads(json_block_match.group(1).strip())
@@ -48,7 +48,7 @@ def extract_json_from_text(text: str) -> Dict[str, Any]:
         pass
     
     try:
-        # 세 번째 시도: 중괄호 사이의 JSON 찾기
+        # Third attempt: Find JSON between curly braces
         json_match = re.search(r'\{.*\}', text, re.DOTALL)
         if json_match:
             json_str = json_match.group(0)
@@ -56,15 +56,15 @@ def extract_json_from_text(text: str) -> Dict[str, Any]:
     except json.JSONDecodeError:
         pass
     
-    raise ValueError("응답에서 유효한 JSON을 찾을 수 없습니다")
+    raise ValueError("Could not find a valid JSON in the response")
 
 def validate_and_normalize_score(score: Any) -> float:
-    """점수를 검증하고 0-100 범위로 정규화"""
+    """Validate and normalize the score to a range of 0-100"""
     try:
         score_float = float(score)
         return max(0.0, min(100.0, score_float))
     except (ValueError, TypeError):
-        logger.warning(f"잘못된 점수 형식: {score}, 기본값 50.0 사용")
+        logger.warning(f"Invalid score format: {score}, using default value 50.0")
         return 50.0
 
 def calculate_rag_weighted_score(base_score: float, rag_sources: List[Dict[str, Any]], confidence_factor: float = 1.0) -> float:

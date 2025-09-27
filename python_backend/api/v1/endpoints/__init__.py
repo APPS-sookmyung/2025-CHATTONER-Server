@@ -1,1 +1,1 @@
-"""API v1 엔드포인트 패키지"""
+"""API v1 endpoint package"""
