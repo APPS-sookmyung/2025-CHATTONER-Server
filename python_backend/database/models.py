@@ -111,6 +111,36 @@ class NegativePreferences(Base):
     # 관계 설정
     # user = relationship("User", back_populates="negative_preferences")
 
+class CompanyDocument(Base):
+    """기업 문서 정보"""
+    __tablename__ = "company_documents"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    # 문서 식별 정보
+    document_id = Column(String(255), unique=True, nullable=False, index=True)
+    original_filename = Column(String(255), nullable=False)
+
+    # 파일 정보
+    file_hash = Column(String(64), unique=True, nullable=False, index=True)  # SHA-256 해시
+    file_size_bytes = Column(Integer, nullable=False)
+    content_type = Column(String(50), default="application/pdf")
+
+    # 추출된 텍스트 정보
+    extracted_text = Column(Text, nullable=False)
+    text_length = Column(Integer, nullable=False)
+
+    # 저장 경로
+    text_file_path = Column(Text, nullable=False)
+
+    # 처리 상태
+    status = Column(String(20), default="active")  # active, deleted, processing, error
+    processing_error = Column(Text, default=None)
+
+    # 메타데이터
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
 class VectorDocumentMetadata(Base):
     """벡터 데이터베이스 문서 메타데이터"""
     __tablename__ = "vector_document_metadata"

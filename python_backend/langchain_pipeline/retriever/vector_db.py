@@ -192,6 +192,14 @@ def save_vector_store(vectorstore: FAISS, save_path: Path):
         logger.error(f"벡터 저장소 저장 실패: {e}")
         raise
 
+def _is_trusted_index_path(path: Path) -> bool:
+    """신뢰 가능한 인덱스 경로인지 확인 (프로젝트 관리 디렉터리 내 고정)."""
+    try:
+        return path.resolve() == FAISS_INDEX_PATH.resolve()
+    except Exception:
+        return False
+
+
 def load_vector_store(load_path: Path) -> Optional[FAISS]:
     """저장된 벡터 저장소 로드 (보안 강화)"""
     try:

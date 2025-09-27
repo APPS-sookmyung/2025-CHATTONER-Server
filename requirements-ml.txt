@@ -1,0 +1,21 @@
+# requirements.txt 기본 구성
+fastapi==0.104.1
+uvicorn==0.24.0
+sqlalchemy==2.0.23
+psycopg2-binary==2.9.9
+redis==5.0.1
+
+# ML/NLP
+torch==2.1.0
+transformers==4.35.0
+sentence-transformers==2.2.2
+peft==0.6.0  # LoRA
+langchain==0.0.340
+
+# 벡터 DB
+faiss-cpu==1.7.4
+# weaviate-client==3.25.3
+
+# 실험 관리
+mlflow==2.8.1
+wandb==0.16.0

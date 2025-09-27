@@ -11,6 +11,7 @@ from services.openai_services import OpenAIService
 from services.user_preferences import UserPreferencesService
 from services.finetune_service import FinetuneService
 from services.document_service import DocumentService
+from services.document_service import DocumentService
 from database.storage import DatabaseStorage
 
 class Container(containers.DeclarativeContainer):

@@ -13,6 +13,10 @@ python_backend/.env
 .env
 *.env
 
+# Local AI agent config (do not commit)
+/.claude/
+python_backend/.claude/
+
 
 .vscode/
 NUL
