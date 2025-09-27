@@ -34,3 +34,5 @@ backup_before_reset/
 python_backend/.venv/
 
 python_backend/core/config.py
+
+setting.env

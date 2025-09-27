@@ -22,6 +22,8 @@ from core.container import Container
 from core.middleware import setup_middleware
 from core.exception_handlers import setup_exception_handlers
 from api.v1.router import api_router
+from starlette.middleware.session import SessionMiddleware
+from api import feedback
 
 def create_app() -> FastAPI:
     """FastAPI 애플리케이션 팩토리"""
@@ -66,12 +68,16 @@ def create_app() -> FastAPI:
     
     # 미들웨어 설정
     setup_middleware(app, settings)
-    
+
+    # 세션 미들웨어 추가 - secret_key .env 설정 파일에서 관리
+    app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
+
     # 예외 핸들러 설정
     setup_exception_handlers(app)
     
-    # 라우터 포함
+    # feedback 라우터 포함
     app.include_router(api_router, prefix="/api/v1")
+    app.include_router(feedback.router, prefix="/feedback", tags=["Feedback"])
     
     return app
 
