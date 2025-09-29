@@ -10,6 +10,12 @@ sqlalchemy>=2.0.42
 psycopg2-binary>=2.9.9
 pypdf>=4.2.0
 
+# --- Alembic Dependencies ---
+# Alembic core library
+alembic
+# Alembic's recommended PostgreSQL driver for 'postgresql+psycopg://' URL
+psycopg[binary]
+
 # Testing dependencies
 pytest>=7.4.0
 pytest-asyncio>=0.21.0
