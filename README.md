@@ -119,13 +119,3 @@ ChatToner comprehensively evaluates conversion quality based on three key axes: 
 | **Kim Jimin** | Development | Fine-tuning, RAG Implementation | onlypotato637@gmail.com |
 | **Jeong Jieun** | Development | Model Development, Fine-tuning | jje49jieun@gmail.com |
 | **Ha Jimin** | Development | Frontend Design/Implementation, API Integration | tracygkwlals@gmail.com |
-
-> **APPS (App/Web Development Club)**
-> This project is a research project conducted by APPS, a club in the Department of Software at Sookmyung Women's University.
-
----
-
-## Contact
-
--   Email: [APPS Club Email]
--   GitHub: [https://github.com/APPS-sookmyung/2025-CHATTONER-Server]
